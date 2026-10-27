@@ -20,16 +20,18 @@ namespace Sorter
         public const string Usage =
             """
             Usage: Sorter <input-file> [options]
-              <input-file>                file to sort, lines in the form "<number>. <text>" (UTF-8)
+              <input-file>                file to sort, lines in the form "<number>. <text>"
+                                          (UTF-8, or UTF-16/UTF-32 with a byte order mark)
             Options:
               --output-file <path>        result file, overwritten if it exists; its folder must exist
-                                          (default: <input-name>-sorted<ext> next to the input file)
+                                          (default: <input-name>-sorted<ext> next to the input file);
+                                          written as UTF-8 with the line ending of the input's first line
               --temp-dir <folder>         existing folder for temporary chunk files (default: system temp folder)
               --workers <int>             number of sorting workers (default: CPU count, at most 8; max 64)
               --max-chunk-mchars <int>    max text per chunk in millions of characters, newlines not counted
                                           (default 100, max 1024); each worker holds one chunk in memory
               --merge-memory-mb <int>     total memory for the merge's read buffers, in MB (default 3072)
-              --verbose                   also print read, sort and write times for every chunk
+              --verbose                   also print timings for every chunk and a summary per worker
             """;
 
         // Returns false with the message to print when the arguments are invalid
