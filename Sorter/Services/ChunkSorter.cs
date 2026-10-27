@@ -42,7 +42,7 @@ namespace Sorter.Services
             return (maxLines, maxChars);
         }
 
-        // verbose: print read, sort, write and wait times for every chunk (two lines per chunk), plus a busy/wait summary per worker
+        // verbose: print read, parse, sort, write and wait times for every chunk (two lines per chunk), plus a busy/wait summary per worker
         public static async Task<List<string>> WriteSortedChunksAsync(string inputPath, string tempDirectory, int maxLines, int maxChars, int workers, bool verbose = false)
         {            
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxLines);
@@ -54,12 +54,12 @@ namespace Sorter.Services
             const int customBufferSize = 1024 * 1024;
             List<string> tempFiles = new List<string>();
 
-            var freeLists = Channel.CreateUnbounded<List<Entry>>(new UnboundedChannelOptions { SingleReader = true });
+            var freeLists = Channel.CreateUnbounded<List<string>>(new UnboundedChannelOptions { SingleReader = true });
             for (int i = 0; i < workers + 1; i++)
-                freeLists.Writer.TryWrite(new List<Entry>(maxLines));    // TryWrite always succeeds on an unbounded channel
+                freeLists.Writer.TryWrite(new List<string>(maxLines));    // TryWrite always succeeds on an unbounded channel
 
             // Queue: full lists waiting for a worker
-            var fullLists = Channel.CreateUnbounded<(List<Entry> Items, string TempFilePath, int ChunkNo)>(new UnboundedChannelOptions { SingleWriter = true });
+            var fullLists = Channel.CreateUnbounded<(List<string> Lines, string TempFilePath, int ChunkNo)>(new UnboundedChannelOptions { SingleWriter = true });
 
             // Workers (consumers)
             var workerTasks = new Task[workers];
@@ -70,19 +70,23 @@ namespace Sorter.Services
                 {
                     try
                     {
+                        var entries = new List<Entry>(maxLines);
                         var waitTimer = new Stopwatch();    // not started: the start-up wait for the first chunk counts as 0
                         double waitTotal = 0, busyTotal = 0;
                         // Ends by itself once the producer calls Complete() and the queue is empty
-                        await foreach (var (items, tempFilePath, chunkNo) in fullLists.Reader.ReadAllAsync(cts.Token))
+                        await foreach (var (lines, tempFilePath, chunkNo) in fullLists.Reader.ReadAllAsync(cts.Token))
                         {
                             var fullListWaiting = waitTimer.Elapsed.TotalSeconds;
                             waitTotal += fullListWaiting;
-                            var itemsCount = items.Count;
-                            var (sortTime, writeTime) = SortAndFlush(items, tempFilePath);
-                            busyTotal += sortTime + writeTime;
+                            var itemsCount = lines.Count;
+                            var parseTime = ParseChunk(lines, entries);
+                            var (sortTime, writeTime) = SortAndFlush(entries, tempFilePath);
+                            busyTotal += parseTime + sortTime + writeTime;
                             if (verbose)
-                                Console.WriteLine($"Chunk {chunkNo}: {itemsCount} items on thread {Environment.CurrentManagedThreadId} with workerNo {workerNo}, sorting in {sortTime:F1} s, writing in {writeTime:F1} s. Waiting on full list took {fullListWaiting:F1} s");
-                            await freeLists.Writer.WriteAsync(items, cts.Token);       // give the list back to the pool
+                                Console.WriteLine($"Chunk {chunkNo}: {itemsCount} items on thread {Environment.CurrentManagedThreadId} with workerNo {workerNo}, parsing in {parseTime:F1} s, sorting in {sortTime:F1} s, writing in {writeTime:F1} s. Waiting on full list took {fullListWaiting:F1} s");
+                            // Only after writing: returning it earlier would let the reader hold more chunks in memory
+                            lines.Clear();
+                            await freeLists.Writer.WriteAsync(lines, cts.Token);       // give the list back to the pool
                             waitTimer.Restart();    // from here until the next chunk arrives the worker is idle
                         }
                         if (verbose)
@@ -117,7 +121,7 @@ namespace Sorter.Services
                     while (true)
                     {
                         var waitTimer = Stopwatch.StartNew();
-                        List<Entry> list = await freeLists.Reader.ReadAsync(cts.Token);
+                        List<string> list = await freeLists.Reader.ReadAsync(cts.Token);
                         var freeListWaiting = waitTimer.Elapsed.TotalSeconds;
                         var (itemsCount, chunkCreationTime) = FillChunk(reader, list, maxLines, maxChars);
                         if (itemsCount == 0) break;// end of file, nothing left to send
@@ -146,15 +150,14 @@ namespace Sorter.Services
         }
 
         // Reads lines until the chunk is full or the file ends; 0 lines means the end of the file was already reached
-        private static (int LineCount, double ReadSeconds) FillChunk(StreamReader reader, List<Entry> list, int maxLines, int maxChars)
+        private static (int LineCount, double ReadSeconds) FillChunk(StreamReader reader, List<string> list, int maxLines, int maxChars)
         {
             var readTimer = Stopwatch.StartNew();
             var chunkChars = 0;
             string? line;
             while ((line = reader.ReadLine()) != null)
             {
-                Entry entry = new Entry(line);
-                list.Add(entry);
+                list.Add(line);
                 chunkChars += line.Length;
                 if (list.Count >= maxLines || chunkChars >= maxChars)
                 {
@@ -162,6 +165,14 @@ namespace Sorter.Services
                 }
             }
             return (list.Count, readTimer.Elapsed.TotalSeconds);
+        }
+
+        private static double ParseChunk(List<string> lines, List<Entry> entries)
+        {
+            var parseTimer = Stopwatch.StartNew();
+            foreach (string line in lines)
+                entries.Add(new Entry(line));
+            return parseTimer.Elapsed.TotalSeconds;
         }
 
         private static (double SortSeconds, double WriteSeconds) SortAndFlush(List<Entry> items, string tempFilePath)

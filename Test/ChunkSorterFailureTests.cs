@@ -50,7 +50,7 @@ namespace Test
         }
 
         [Fact(Timeout = TimeoutMs)]
-        public async Task When_Reader_Fails_While_Workers_Are_Busy_Should_Throw_Its_Error()
+        public async Task When_Line_Is_Invalid_While_Workers_Are_Busy_Should_Throw_Its_Error()
         {
             string input = WriteInput(ValidLines(20) + "5.B\n"); // 10 chunks go to the workers before the invalid line
 
