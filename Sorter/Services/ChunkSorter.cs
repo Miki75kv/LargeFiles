@@ -42,7 +42,7 @@ namespace Sorter.Services
             return (maxLines, maxChars);
         }
 
-        // verbose: print read, sort and write times for every chunk (two lines per chunk)
+        // verbose: print read, sort, write and wait times for every chunk (two lines per chunk), plus a busy/wait summary per worker
         public static async Task<List<string>> WriteSortedChunksAsync(string inputPath, string tempDirectory, int maxLines, int maxChars, int workers, bool verbose = false)
         {            
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxLines);
@@ -70,15 +70,23 @@ namespace Sorter.Services
                 {
                     try
                     {
+                        var waitTimer = new Stopwatch();    // not started: the start-up wait for the first chunk counts as 0
+                        double waitTotal = 0, busyTotal = 0;
                         // Ends by itself once the producer calls Complete() and the queue is empty
                         await foreach (var (items, tempFilePath, chunkNo) in fullLists.Reader.ReadAllAsync(cts.Token))
                         {
+                            var fullListWaiting = waitTimer.Elapsed.TotalSeconds;
+                            waitTotal += fullListWaiting;
                             var itemsCount = items.Count;
                             var (sortTime, writeTime) = SortAndFlush(items, tempFilePath);
+                            busyTotal += sortTime + writeTime;
                             if (verbose)
-                                Console.WriteLine($"Chunk {chunkNo}: {itemsCount} items on thread {Environment.CurrentManagedThreadId} with workerNo {workerNo}, sorting in {sortTime:F1} s, writing in {writeTime:F1} s");
+                                Console.WriteLine($"Chunk {chunkNo}: {itemsCount} items on thread {Environment.CurrentManagedThreadId} with workerNo {workerNo}, sorting in {sortTime:F1} s, writing in {writeTime:F1} s. Waiting on full list took {fullListWaiting:F1} s");
                             await freeLists.Writer.WriteAsync(items, cts.Token);       // give the list back to the pool
+                            waitTimer.Restart();    // from here until the next chunk arrives the worker is idle
                         }
+                        if (verbose)
+                            Console.WriteLine($"Worker {workerNo}: busy {busyTotal:F1} s, waiting on full lists {waitTotal:F1} s (start-up wait not counted)");
                     }
                     catch
                     {
