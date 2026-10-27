@@ -19,7 +19,6 @@ namespace Sorter.Entities
 
             Line = line;
             TextStart = dotIndex + 2;
-
         }
 
         private static string ShortenForMessage(string line)
@@ -34,7 +33,6 @@ namespace Sorter.Entities
             int stringComparison = Text.CompareTo(other.Text, StringComparison.Ordinal);
             if (stringComparison == 0) return Number.CompareTo(other.Number);
             else return stringComparison;
-
         }
     }
 }

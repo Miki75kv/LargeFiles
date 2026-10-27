@@ -44,13 +44,13 @@ namespace Sorter.Services
 
         // verbose: print read, parse, sort, write and wait times for every chunk (two lines per chunk), plus a busy/wait summary per worker
         public static async Task<List<string>> WriteSortedChunksAsync(string inputPath, string tempDirectory, int maxLines, int maxChars, int workers, bool verbose = false)
-        {            
+        {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxLines);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxChars);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(workers);
 
             using var cts = new CancellationTokenSource();
-            
+
             const int customBufferSize = 1024 * 1024;
             List<string> tempFiles = new List<string>();
 
@@ -97,15 +97,12 @@ namespace Sorter.Services
                         cts.Cancel();   // wake the reader and stop the other workers
                         throw;          // keep the original exception and its stack trace
                     }
-
                 });
             }
-
 
             // Producer
             Task readerTask = Task.Run(async () =>
             {
-
                 try
                 {
                     using StreamReader reader = new StreamReader(
@@ -124,14 +121,13 @@ namespace Sorter.Services
                         List<string> list = await freeLists.Reader.ReadAsync(cts.Token);
                         var freeListWaiting = waitTimer.Elapsed.TotalSeconds;
                         var (itemsCount, chunkCreationTime) = FillChunk(reader, list, maxLines, maxChars);
-                        if (itemsCount == 0) break;// end of file, nothing left to send
+                        if (itemsCount == 0) break; // end of file, nothing left to send
                         var tempFilePath = Path.Combine(tempDirectory, $"{++chunkNo}.txt");
                         if (verbose)
                             Console.WriteLine($"Produced chunk {chunkNo}: {itemsCount} items on thread {Environment.CurrentManagedThreadId} in {chunkCreationTime:F1} s. Waiting on free list took {freeListWaiting:F1} s");
                         await fullLists.Writer.WriteAsync((list, tempFilePath, chunkNo), cts.Token);
                         tempFiles.Add(tempFilePath);
                     }
-
                 }
                 catch
                 {
@@ -145,7 +141,7 @@ namespace Sorter.Services
             });
 
             // waits for the reader and every worker; rethrows the real error, not the cancellation it caused
-            await Task.WhenAll([readerTask, .. workerTasks]); 
+            await Task.WhenAll([readerTask, .. workerTasks]);
             return tempFiles;
         }
 

@@ -32,7 +32,6 @@ namespace Test
             string resultFilePath = Path.Combine(_tempDir, "result.txt");
             ChunkMerger.Merge([inputFile1, inputFile2], resultFilePath, "\n");
 
-
             Assert.Equal(new[] { "1. A", "2. A", "3. B", "5. B", "5. C", "5. C" }, File.ReadAllLines(resultFilePath));
         }
 
@@ -44,7 +43,6 @@ namespace Test
 
             string resultFilePath = Path.Combine(_tempDir, "result.txt");
             ChunkMerger.Merge([inputFile1, inputFile2], resultFilePath, "\n");
-
 
             Assert.Equal(new[] { "1. A",  "5. B", "5. C" }, File.ReadAllLines(resultFilePath));
         }

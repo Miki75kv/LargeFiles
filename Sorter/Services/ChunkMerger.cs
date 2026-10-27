@@ -36,7 +36,6 @@ namespace Sorter.Services
             PriorityQueue<int, Entry> entryQueue = new PriorityQueue<int, Entry>();
             try
             {
-
                 foreach (string file in chunkFiles)
                 {
                     StreamReader sr = new StreamReader(file, new FileStreamOptions()
@@ -63,7 +62,6 @@ namespace Sorter.Services
                     var line = reader.ReadLine();
                     if (line == null) reader.Close();
                     else entryQueue.Enqueue(ix, new Entry(line));
-
                 }
                 while (entryQueue.TryPeek(out int index, out var entry))
                 {
@@ -87,5 +85,4 @@ namespace Sorter.Services
             }
         }
     }
-
 }

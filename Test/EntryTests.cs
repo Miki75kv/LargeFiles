@@ -9,7 +9,7 @@ namespace Test
         [InlineData("007. Some text", 7, "Some text")]
         [InlineData("12. Some. text", 12, "Some. text")]
         [InlineData("9999999999. A", 9999999999L, "A")]
-        [InlineData("5. ", 5, "")] //empty string        
+        [InlineData("5. ", 5, "")] //empty string
         public void When_Line_Is_Valid_Should_Parse(string input, long number, string text)
         {
             Entry entry = new Entry(input);
@@ -66,7 +66,6 @@ namespace Test
             Assert.Equal(expected, Math.Sign(left.CompareTo(right)));
             Assert.Equal(-1 * expected, Math.Sign(right.CompareTo(left)));//symetry
         }
-
 
         [Fact]
         public void When_Sorting_List_Should_Order_By_Text_Then_Number()

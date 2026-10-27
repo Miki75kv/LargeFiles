@@ -39,7 +39,7 @@ namespace Generator
                 if (seen.Add(phrase))
                     phrases.Add((phrase, Encoding.UTF8.GetByteCount(phrase)));
             }
-            
+
             long bytesWritten = 0;
             long linesWritten = 0;
             Span<char> numberBuffer = stackalloc char[20];

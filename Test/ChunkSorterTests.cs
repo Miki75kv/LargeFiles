@@ -6,7 +6,6 @@ namespace Test
 {
     public class ChunkSorterTests : IDisposable
     {
-
         private readonly string _tempDir;
         private readonly string _chunkDir;
         private static readonly byte[] Utf8Bom = [0xEF, 0xBB, 0xBF];
@@ -42,7 +41,6 @@ namespace Test
             Assert.Equal(new[] { "2. B", "5. B" }, File.ReadAllLines(chunks[1]));
             Assert.Equal(new[] { "4. A" }, File.ReadAllLines(chunks[2]));
         }
-
 
         [Fact]
         public async Task When_Lines_Fill_Last_Chunk_Exactly_Should_Not_Create_Empty_Chunk()
@@ -93,7 +91,6 @@ namespace Test
             Assert.Equal(new[] { "1. A", "2. " + new string('x', 100) }, File.ReadAllLines(chunks[0]));
             Assert.Equal(new[] { "2. A", "5. B" }, File.ReadAllLines(chunks[1]));
         }
-
 
         [Fact]
         public async Task When_Input_Is_Empty_Should_Create_No_Chunks()
@@ -179,7 +176,5 @@ namespace Test
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => ChunkSorter.GetChunkLimits(fileSizeBytes, workers, maxChunkMChars));
         }
-
-
     }
 }
