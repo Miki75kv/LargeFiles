@@ -14,7 +14,7 @@ namespace Sorter
         bool Verbose)
     {
         private const int MB = 1024 * 1024;
-        public const int DefaultMaxWorkers = 8;   // the default: one reader can't keep more workers busy (see Benchmark.md)
+        public const int DefaultMaxWorkers = 8;   // the default: one reader can't keep more workers busy (see README.md)
         public const int MaxWorkersLimit = 64;    // sanity bound for --workers: every worker holds a preallocated chunk list
 
         public const string Usage =
