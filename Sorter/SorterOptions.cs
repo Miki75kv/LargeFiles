@@ -157,7 +157,9 @@ namespace Sorter
                     return false; // unknown option or an extra positional argument
             }
 
-            return inputFilePath.Length > 0;
+            // Path.GetFullPath throws for an empty or blank path, so such a path counts as missing
+            return !string.IsNullOrWhiteSpace(inputFilePath)
+                && (outputFilePath is null || !string.IsNullOrWhiteSpace(outputFilePath));
         }
     }
 }

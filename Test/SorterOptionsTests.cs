@@ -35,6 +35,16 @@ namespace Test
             Assert.Equal(SorterOptions.Usage, error);
         }
 
+        [Fact]
+        public void When_Path_Is_Empty_Or_Blank_Should_Return_Usage()
+        {
+            Assert.False(SorterOptions.TryParse([" "], out _, out string? error));
+            Assert.Equal(SorterOptions.Usage, error);
+
+            Assert.False(SorterOptions.TryParse([_inputPath, "--output-file", ""], out _, out error));
+            Assert.Equal(SorterOptions.Usage, error);
+        }
+
         [Theory]
         [InlineData("--workers 0", "workers")]
         [InlineData("--workers 65", "workers")]

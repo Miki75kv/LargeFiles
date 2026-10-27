@@ -35,7 +35,7 @@ namespace Generator
 
             string fullOutputPath = Path.GetFullPath(outputPath);
 
-            error = Validate(fullOutputPath, fileSizeMb, uniquePhrases, seed);
+            error = Validate(fullOutputPath, fileSizeMb, uniquePhrases);
             if (error is not null)
                 return false;
 
@@ -43,23 +43,22 @@ namespace Generator
                 fullOutputPath,
                 (long)fileSizeMb * MB,
                 uniquePhrases ?? FileGenerator.DefaultUniquePhrasesCount,
-                seed ?? Random.Shared.Next()); 
+                seed ?? Random.Shared.Next());
             return true;
         }
 
-        private static string? Validate(string outputPath, int fileSizeMb, int? uniquePhrases, int? seed)
+        private static string? Validate(string outputPath, int fileSizeMb, int? uniquePhrases)
         {
             if (fileSizeMb <= 0)
                 return "Param size-mb must be a positive int";
             if (uniquePhrases is <= 0 or > FileGenerator.MaxUniquePhrasesCount)
-                return $"Param unique must be between 1 and {FileGenerator.MaxUniquePhrasesCount}";            
+                return $"Param unique must be between 1 and {FileGenerator.MaxUniquePhrasesCount}";
 
             if (Path.EndsInDirectorySeparator(outputPath) || Directory.Exists(outputPath))
                 return $"Output file path must include a file name, not just a folder: {outputPath}";
             string? outputFolder = Path.GetDirectoryName(outputPath);
             if (!Directory.Exists(outputFolder))
                 return $"Output folder does not exist: {outputFolder}";
-            
 
             return null;
         }
@@ -97,13 +96,11 @@ namespace Generator
                         return false;
                     seed = seedIn;
                 }
-                else if (args[i].StartsWith("--", StringComparison.Ordinal))
-                    return false; // unknown option                
                 else
-                    return false;//an unexpected extra argument
+                    return false; // unknown option or an extra positional argument
             }
 
-            return outputFilePath.Length > 0;
+            return !string.IsNullOrWhiteSpace(outputFilePath); // Path.GetFullPath throws for an empty or blank path
         }
     }
 }
