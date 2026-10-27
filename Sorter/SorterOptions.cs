@@ -14,6 +14,8 @@ namespace Sorter
         bool Verbose)
     {
         private const int MB = 1024 * 1024;
+        public const int DefaultMaxWorkers = 8;   // the default: one reader can't keep more workers busy (see Benchmark.md)
+        public const int MaxWorkersLimit = 64;    // sanity bound for --workers: every worker holds a preallocated chunk list
 
         public const string Usage =
             """
@@ -23,7 +25,7 @@ namespace Sorter
               --output-file <path>        result file, overwritten if it exists; its folder must exist
                                           (default: <input-name>-sorted<ext> next to the input file)
               --temp-dir <folder>         existing folder for temporary chunk files (default: system temp folder)
-              --workers <int>             number of sorting workers (default: CPU count)
+              --workers <int>             number of sorting workers (default: CPU count, at most 8; max 64)
               --max-chunk-mchars <int>    max text per chunk in millions of characters, newlines not counted
                                           (default 100, max 1024); each worker holds one chunk in memory
               --merge-memory-mb <int>     total memory for the merge's read buffers, in MB (default 3072)
@@ -53,7 +55,7 @@ namespace Sorter
                 fullInputPath,
                 fullOutputPath,
                 tempRoot,
-                workers ?? Environment.ProcessorCount,
+                workers ?? Math.Min(Environment.ProcessorCount, DefaultMaxWorkers),
                 maxChunkMChars,
                 (long)(mergeMemoryMb ?? ChunkMerger.DefaultMergeMemoryMb) * MB, // MB from the user or the default, converted once
                 verbose);
@@ -69,8 +71,8 @@ namespace Sorter
         private static string? Validate(string inputPath, string outputPath, string? tempRoot,
             int? workers, int? maxChunkMChars, int? mergeMemoryMb)
         {
-            if (workers <= 0)
-                return "Param workers must be a positive int";
+            if (workers is <= 0 or > MaxWorkersLimit)
+                return $"Param workers must be between 1 and {MaxWorkersLimit}";
             if (maxChunkMChars is <= 0 or > ChunkSorter.MaxChunkMCharsLimit)
                 return $"Param max-chunk-mchars must be between 1 and {ChunkSorter.MaxChunkMCharsLimit}";
             if (mergeMemoryMb <= 0)

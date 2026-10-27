@@ -37,6 +37,7 @@ namespace Test
 
         [Theory]
         [InlineData("--workers 0", "workers")]
+        [InlineData("--workers 65", "workers")]
         [InlineData("--max-chunk-mchars 0", "max-chunk-mchars")]
         [InlineData("--max-chunk-mchars 1025", "max-chunk-mchars")]
         [InlineData("--merge-memory-mb 0", "merge-memory-mb")]
@@ -101,7 +102,7 @@ namespace Test
             Assert.Equal(_inputPath, options.InputPath);
             Assert.Equal(Path.Combine(_tempDir, "in-sorted.txt"), options.OutputPath);
             Assert.Null(options.TempRoot);
-            Assert.Equal(Environment.ProcessorCount, options.Workers);
+            Assert.Equal(Math.Min(Environment.ProcessorCount, SorterOptions.DefaultMaxWorkers), options.Workers);
             Assert.Null(options.MaxChunkMChars);
             Assert.Equal(ChunkMerger.DefaultMergeMemoryBytes, options.MergeMemoryBytes);
             Assert.False(options.Verbose);
