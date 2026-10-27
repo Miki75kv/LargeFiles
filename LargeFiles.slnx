@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Generator/Generator.csproj" />
+  <Project Path="Sorter/Sorter.csproj" />
+  <Project Path="Test/Test.csproj" Id="675b614b-884a-40ae-a431-7d971908e3d6" />
+</Solution>
