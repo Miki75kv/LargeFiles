@@ -37,8 +37,8 @@ namespace Test
 
         [Theory]
         [InlineData("--workers 0", "workers")]
-        [InlineData("--max-chunk-size-mb 0", "max-chunk-size-mb")]
-        [InlineData("--max-chunk-size-mb 1025", "max-chunk-size-mb")]
+        [InlineData("--max-chunk-mchars 0", "max-chunk-mchars")]
+        [InlineData("--max-chunk-mchars 1025", "max-chunk-mchars")]
         [InlineData("--merge-memory-mb 0", "merge-memory-mb")]
         public void When_Number_Is_Out_Of_Range_Should_Name_The_Option(string option, string expectedInError)
         {
@@ -102,7 +102,7 @@ namespace Test
             Assert.Equal(Path.Combine(_tempDir, "in-sorted.txt"), options.OutputPath);
             Assert.Null(options.TempRoot);
             Assert.Equal(Environment.ProcessorCount, options.Workers);
-            Assert.Null(options.MaxChunkSizeMb);
+            Assert.Null(options.MaxChunkMChars);
             Assert.Equal(ChunkMerger.DefaultMergeMemoryBytes, options.MergeMemoryBytes);
             Assert.False(options.Verbose);
         }
@@ -112,14 +112,14 @@ namespace Test
         {
             string outputPath = Path.Combine(_tempDir, "out.txt");
             string[] args = [_inputPath, "--output-file", outputPath, "--temp-dir", _tempDir,
-                "--workers", "3", "--max-chunk-size-mb", "50", "--merge-memory-mb", "512", "--verbose"];
+                "--workers", "3", "--max-chunk-mchars", "50", "--merge-memory-mb", "512", "--verbose"];
 
             Assert.True(SorterOptions.TryParse(args, out SorterOptions? options, out _));
 
             Assert.Equal(outputPath, options.OutputPath);
             Assert.Equal(_tempDir, options.TempRoot);
             Assert.Equal(3, options.Workers);
-            Assert.Equal(50, options.MaxChunkSizeMb);
+            Assert.Equal(50, options.MaxChunkMChars);
             Assert.Equal(512L * 1024 * 1024, options.MergeMemoryBytes); // MB converted to bytes
             Assert.True(options.Verbose);
         }

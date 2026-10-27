@@ -25,13 +25,13 @@ namespace Sorter
             try
             {
                 long fileSizeBytes = new FileInfo(options.InputPath).Length;
-                var (maxLinesPerChunk, maxCharsPerChunk) = ChunkSorter.GetChunkLimits(fileSizeBytes, options.Workers, options.MaxChunkSizeMb);
-                Console.WriteLine($"Sorting {options.InputPath} ({fileSizeBytes / MB:N0} MB), chunks up to {maxCharsPerChunk / MB:N0} MB of text...");
+                var (maxLinesPerChunk, maxCharsPerChunk) = ChunkSorter.GetChunkLimits(fileSizeBytes, options.Workers, options.MaxChunkMChars);
+                Console.WriteLine($"Sorting {options.InputPath} ({fileSizeBytes / MB:N0} MB), chunks up to {maxCharsPerChunk:N0} chars of text...");
 
                 // Unique subfolder per run, so cleanup is a single recursive delete
                 tempDir = options.TempRoot is null
                     ? Directory.CreateTempSubdirectory("sorter-")
-                    : Directory.CreateDirectory(Path.Combine(options.TempRoot, "sorter-" + Guid.NewGuid().ToString("N")));                
+                    : Directory.CreateDirectory(Path.Combine(options.TempRoot, "sorter-" + Guid.NewGuid().ToString("N")));
 
                 //create sorted files from input
                 var phase = Stopwatch.StartNew();

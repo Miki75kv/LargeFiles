@@ -7,27 +7,27 @@ namespace Sorter.Services
 {
     public static class ChunkSorter
     {
-        private const int MB = 1024 * 1024;              // chunk sizes given in "MB" count characters, not bytes
-        public const int DefaultMaxChunkSizeMb = 100;
-        public const int MaxChunkSizeMbLimit = 1024;     // ~3.5 GB of heap per chunk; also keeps the char count within int
-        private const int MinChunkChars = 1 * MB;        // tiny inputs: one small chunk instead of many near-empty ones
+        private const int MillionChars = 1_000_000;      // chunk sizes are given in millions of characters, not bytes
+        public const int DefaultMaxChunkMChars = 100;
+        public const int MaxChunkMCharsLimit = 1024;     // ~3.5 GB of heap per chunk; also keeps the char count within int
+        private const int MinChunkChars = 1 * MillionChars; // tiny inputs: one small chunk instead of many near-empty ones
         private const int AssumedAvgLineChars = 30;
 
         private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         // The chunk size splits the input evenly across workers,
-        // capped at maxChunkSizeMb (default 100 MB) so memory stays bounded on large inputs.
-        public static (int MaxLines, int MaxChars) GetChunkLimits(long fileSizeBytes, int workers, int? maxChunkSizeMb = null)
+        // capped at maxChunkMChars (default 100 million chars) so memory stays bounded on large inputs.
+        public static (int MaxLines, int MaxChars) GetChunkLimits(long fileSizeBytes, int workers, int? maxChunkMChars = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(fileSizeBytes);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(workers);
-            if (maxChunkSizeMb is not null)
+            if (maxChunkMChars is not null)
             {
-                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxChunkSizeMb.Value, nameof(maxChunkSizeMb));
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(maxChunkSizeMb.Value, MaxChunkSizeMbLimit, nameof(maxChunkSizeMb));
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxChunkMChars.Value, nameof(maxChunkMChars));
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(maxChunkMChars.Value, MaxChunkMCharsLimit, nameof(maxChunkMChars));
             }
 
-            long capChars = (long)(maxChunkSizeMb ?? DefaultMaxChunkSizeMb) * MB;
+            long capChars = (long)(maxChunkMChars ?? DefaultMaxChunkMChars) * MillionChars;
 
             // The chunk limits count chars (what the heap holds), but up front only the file size in bytes is known.
             // In UTF-8 every char takes at least 1 byte, so bytes are an upper estimate of chars (exact for ASCII).

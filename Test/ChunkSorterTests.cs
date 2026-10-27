@@ -154,16 +154,17 @@ namespace Test
         }
 
         private const int MB = 1024 * 1024;
+        private const int MillionChars = 1_000_000;
 
         [Theory]
-        [InlineData(0L, 8, null, 1 * MB)]              // empty input: still a valid limit (the floor)
-        [InlineData(1024L, 8, null, 1 * MB)]           // tiny input: the 1 MB floor
-        [InlineData(400L * MB, 8, null, 50 * MB)]      // even split across workers
-        [InlineData(1024L * MB, 8, null, 100 * MB)]    // large input: the 100 MB default cap
-        [InlineData(1024L * MB, 1, 1, 1 * MB)]         // the user's cap
-        public void When_Computing_Chunk_Limits_Should_Split_Input_Within_Floor_And_Cap(long fileSizeBytes, int workers, int? maxChunkSizeMb, int expectedMaxChars)
+        [InlineData(0L, 8, null, 1 * MillionChars)]            // empty input: still a valid limit (the floor)
+        [InlineData(1024L, 8, null, 1 * MillionChars)]         // tiny input: the 1 million chars floor
+        [InlineData(400L * MB, 8, null, 50 * MB)]              // even split across workers (file bytes estimate chars)
+        [InlineData(1024L * MB, 8, null, 100 * MillionChars)]  // large input: the default cap of 100 million chars
+        [InlineData(1024L * MB, 1, 1, 1 * MillionChars)]       // the user's cap
+        public void When_Computing_Chunk_Limits_Should_Split_Input_Within_Floor_And_Cap(long fileSizeBytes, int workers, int? maxChunkMChars, int expectedMaxChars)
         {
-            var (maxLines, maxChars) = ChunkSorter.GetChunkLimits(fileSizeBytes, workers, maxChunkSizeMb);
+            var (maxLines, maxChars) = ChunkSorter.GetChunkLimits(fileSizeBytes, workers, maxChunkMChars);
 
             Assert.Equal(expectedMaxChars, maxChars);
             Assert.Equal(expectedMaxChars / 30, maxLines); // line limit assumes ~30 chars per line
@@ -174,9 +175,9 @@ namespace Test
         [InlineData(1024L, 0, null)]
         [InlineData(1024L, 8, 0)]
         [InlineData(1024L, 8, 1025)]
-        public void When_Chunk_Limit_Arguments_Are_Invalid_Should_Throw(long fileSizeBytes, int workers, int? maxChunkSizeMb)
+        public void When_Chunk_Limit_Arguments_Are_Invalid_Should_Throw(long fileSizeBytes, int workers, int? maxChunkMChars)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => ChunkSorter.GetChunkLimits(fileSizeBytes, workers, maxChunkSizeMb));
+            Assert.Throws<ArgumentOutOfRangeException>(() => ChunkSorter.GetChunkLimits(fileSizeBytes, workers, maxChunkMChars));
         }
 
 

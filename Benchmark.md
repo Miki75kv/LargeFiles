@@ -21,6 +21,7 @@
 ## Final results
 
 Final build (2026-10-27): parallel split (one reader, N sorting workers), single-threaded merge, workstation GC, default 100 MB chunks.
+Note: the runs below used the earlier option `--max-chunk-size-mb`, where "100 MB" meant 104,857,600 characters. It is now `--max-chunk-mchars`, in plain millions of characters (default 100 = 100,000,000).
 The sorting logic is unchanged since the parallel outputs were checked by hash (see the history below), so these runs weren't checked again.
 
 | Configuration | Input | Split (s) | Merge (s) | Total (s) | Peak memory (MB) | Chunks | GC gen0 / gen1 / gen2 | GC pause (s) | Allocated (MB) |

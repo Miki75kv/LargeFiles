@@ -9,7 +9,7 @@ namespace Sorter
         string OutputPath,
         string? TempRoot,
         int Workers,
-        int? MaxChunkSizeMb,
+        int? MaxChunkMChars,
         long MergeMemoryBytes,
         bool Verbose)
     {
@@ -24,8 +24,8 @@ namespace Sorter
                                           (default: <input-name>-sorted<ext> next to the input file)
               --temp-dir <folder>         existing folder for temporary chunk files (default: system temp folder)
               --workers <int>             number of sorting workers (default: CPU count)
-              --max-chunk-size-mb <int>   max chunk size in MB of text, counted in characters
-                                          (1 char = 1 byte for ASCII; default 100, max 1024)
+              --max-chunk-mchars <int>    max text per chunk in millions of characters, newlines not counted
+                                          (default 100, max 1024); each worker holds one chunk in memory
               --merge-memory-mb <int>     total memory for the merge's read buffers, in MB (default 3072)
               --verbose                   also print read, sort and write times for every chunk
             """;
@@ -36,7 +36,7 @@ namespace Sorter
             options = null;
 
             if (!TryReadArgs(args, out string inputPath, out string? outputPath, out string? tempRoot,
-                    out int? workers, out int? maxChunkSizeMb, out int? mergeMemoryMb, out bool verbose))
+                    out int? workers, out int? maxChunkMChars, out int? mergeMemoryMb, out bool verbose))
             {
                 error = Usage;
                 return false;
@@ -45,7 +45,7 @@ namespace Sorter
             string fullInputPath = Path.GetFullPath(inputPath);
             string fullOutputPath = Path.GetFullPath(outputPath ?? DefaultOutputPath(fullInputPath));
 
-            error = Validate(fullInputPath, fullOutputPath, tempRoot, workers, maxChunkSizeMb, mergeMemoryMb);
+            error = Validate(fullInputPath, fullOutputPath, tempRoot, workers, maxChunkMChars, mergeMemoryMb);
             if (error is not null)
                 return false;
 
@@ -54,7 +54,7 @@ namespace Sorter
                 fullOutputPath,
                 tempRoot,
                 workers ?? Environment.ProcessorCount,
-                maxChunkSizeMb,
+                maxChunkMChars,
                 (long)(mergeMemoryMb ?? ChunkMerger.DefaultMergeMemoryMb) * MB, // MB from the user or the default, converted once
                 verbose);
             return true;
@@ -67,12 +67,12 @@ namespace Sorter
 
         // Returns null when valid. Checks on the numbers first, then the ones that touch the disk.
         private static string? Validate(string inputPath, string outputPath, string? tempRoot,
-            int? workers, int? maxChunkSizeMb, int? mergeMemoryMb)
+            int? workers, int? maxChunkMChars, int? mergeMemoryMb)
         {
             if (workers <= 0)
                 return "Param workers must be a positive int";
-            if (maxChunkSizeMb is <= 0 or > ChunkSorter.MaxChunkSizeMbLimit)
-                return $"Param max-chunk-size-mb must be between 1 and {ChunkSorter.MaxChunkSizeMbLimit}";
+            if (maxChunkMChars is <= 0 or > ChunkSorter.MaxChunkMCharsLimit)
+                return $"Param max-chunk-mchars must be between 1 and {ChunkSorter.MaxChunkMCharsLimit}";
             if (mergeMemoryMb <= 0)
                 return "Param merge-memory-mb must be a positive int";
 
@@ -93,13 +93,13 @@ namespace Sorter
         }
 
         private static bool TryReadArgs(string[] args, out string inputFilePath, out string? outputFilePath, out string? tempRoot,
-            out int? workerCount, out int? maxChunkSizeMB, out int? mergeMemoryMB, out bool verbose)
+            out int? workerCount, out int? maxChunkMChars, out int? mergeMemoryMB, out bool verbose)
         {
             inputFilePath = "";
             outputFilePath = null;
             tempRoot = null;
             workerCount = null;
-            maxChunkSizeMB = null;
+            maxChunkMChars = null;
             mergeMemoryMB = null;
             verbose = false;
 
@@ -129,13 +129,13 @@ namespace Sorter
                         return false;
                     workerCount = workers;
                 }
-                else if (args[i] == "--max-chunk-size-mb")
+                else if (args[i] == "--max-chunk-mchars")
                 {
                     if (i + 1 >= args.Length)
                         return false;
-                    if (!int.TryParse(args[++i], out int maxChunkSize))
+                    if (!int.TryParse(args[++i], out int maxChunk))
                         return false;
-                    maxChunkSizeMB = maxChunkSize;
+                    maxChunkMChars = maxChunk;
                 }
                 else if (args[i] == "--merge-memory-mb")
                 {
